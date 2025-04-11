@@ -1,38 +1,33 @@
 package com.example.authbe;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+
+import javax.sql.DataSource;
 
 public class DatabaseConnection {
+    private static final HikariDataSource dataSource;
 
-    private static DatabaseConnection instance;
-    private Connection connection;
+    static {
+        String dbUrl = System.getenv("DATABASE_URL");
+        String dbUsername = System.getenv("DATABASE_USERNAME");
+        String dbPassword = System.getenv("DATABASE_PASSWORD");
 
-    private DatabaseConnection() throws SQLException {
-        String url = System.getenv("DATABASE_URL");
-        String username = System.getenv("DATABASE_USERNAME");
-        String password = System.getenv("DATABASE_PASSWORD");
-
-        if (url == null || username == null || password == null) {
-            throw new SQLException("Database environment variables are not set.");
+        if (dbUrl == null || dbUsername == null || dbPassword == null) {
+            throw new IllegalArgumentException("Database connection details are not set in environment variables.");
         }
+        
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl(dbUrl);
+        config.setUsername(dbUsername);
+        config.setPassword(dbPassword);
+        config.setDriverClassName("org.postgresql.Driver");
+        config.setMaximumPoolSize(10);
 
-        this.connection = DriverManager.getConnection(url, username, password);
+        dataSource = new HikariDataSource(config);
     }
 
-    public static DatabaseConnection getInstance() throws SQLException {
-        if (instance == null) {
-            synchronized (DatabaseConnection.class) {
-                if (instance == null) {
-                    instance = new DatabaseConnection();
-                }
-            }
-        }
-        return instance;
-    }
-
-    public Connection getConnection() {
-        return connection;
+    public static DataSource getDataSource() {
+        return dataSource;
     }
 }
