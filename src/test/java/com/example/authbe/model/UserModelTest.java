@@ -1,7 +1,6 @@
 package com.example.authbe.model;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.util.SerializationUtils;
 
 import com.example.authbe.enums.Role;
 
