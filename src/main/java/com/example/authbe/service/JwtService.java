@@ -12,22 +12,45 @@ public class JwtService {
     private final long defaultExpirationMs = 1000 * 60 * 60; // 1 hour
 
     public String generateToken(UserDetails userDetails) {
-       return "";
+        return generateToken(userDetails, defaultExpirationMs);
     }
 
     public String generateToken(UserDetails userDetails, long expiryMillis) {
-        return  "";
+        return Jwts.builder()
+                .setSubject(userDetails.getUsername())
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + expiryMillis))
+                .signWith(key)
+                .compact();
     }
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
-       return true;
+        try {
+            String username = extractUsername(token);
+            return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
+        } catch (ExpiredJwtException e) {
+            throw e;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     public String extractUsername(String token) {
-        return "";
+        return Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .getSubject();
     }
 
     private boolean isTokenExpired(String token) {
-       return true;
+        Date expiration = Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .getExpiration();
+        return expiration.before(new Date());
     }
 }
