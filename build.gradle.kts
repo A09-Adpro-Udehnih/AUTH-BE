@@ -43,6 +43,7 @@ dependencies {
 	annotationProcessor("org.projectlombok:lombok")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("org.springframework.security:spring-security-test")
+	testImplementation("org.mockito:mockito-inline:5.12.0")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 	testRuntimeOnly("com.h2database:h2")
 }
@@ -52,6 +53,12 @@ tasks.withType<Test> {
 }
 
 tasks.test {
+	doFirst {
+        val mockitoJar = classpath.find { it.name.contains("mockito-inline") }
+        if (mockitoJar != null) {
+            jvmArgs("-javaagent:${mockitoJar.absolutePath}")
+        }
+    }
 	filter {
 		excludeTestsMatching("*FunctionalTest")
 	}
