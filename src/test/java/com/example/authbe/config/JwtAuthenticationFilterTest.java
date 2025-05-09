@@ -9,14 +9,17 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 
 import java.io.IOException;
+import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 public class JwtAuthenticationFilterTest {
     private JwtService jwtService;
+    private UserDetailsService userDetailsService;
     private JwtAuthenticationFilter filter;
     private HttpServletRequest request;
     private HttpServletResponse response;
@@ -25,7 +28,8 @@ public class JwtAuthenticationFilterTest {
     @BeforeEach
     void setUp() {
         jwtService = mock(JwtService.class);
-        filter = new JwtAuthenticationFilter(jwtService);
+        userDetailsService = mock(UserDetailsService.class);
+        filter = new JwtAuthenticationFilter(jwtService, userDetailsService);
         request = mock(HttpServletRequest.class);
         response = mock(HttpServletResponse.class);
         chain = mock(FilterChain.class);
@@ -36,10 +40,13 @@ public class JwtAuthenticationFilterTest {
     void testValidJwtSetsAuthentication() throws ServletException, IOException {
         String token = "valid.jwt.token";
         String username = "user";
-        String role = "STAFF";
+        UserDetails userDetails = mock(UserDetails.class);
+        when(userDetails.getUsername()).thenReturn(username);
+        when(userDetails.getAuthorities()).thenReturn(Collections.emptyList());
+        
         when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
         when(jwtService.extractUsername(token)).thenReturn(username);
-        when(jwtService.extractRole(token)).thenReturn(role);
+        when(userDetailsService.loadUserByUsername(username)).thenReturn(userDetails);
         when(jwtService.isTokenValid(eq(token), any(UserDetails.class))).thenReturn(true);
 
         filter.doFilterInternal(request, response, chain);
@@ -52,9 +59,14 @@ public class JwtAuthenticationFilterTest {
     @Test
     void testInvalidJwtDoesNotSetAuthentication() throws ServletException, IOException {
         String token = "invalid.jwt.token";
+        String username = "user";
+        UserDetails userDetails = mock(UserDetails.class);
+        when(userDetails.getUsername()).thenReturn(username);
+        when(userDetails.getAuthorities()).thenReturn(Collections.emptyList());
+        
         when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
-        when(jwtService.extractUsername(token)).thenReturn("user");
-        when(jwtService.extractRole(token)).thenReturn("STAFF");
+        when(jwtService.extractUsername(token)).thenReturn(username);
+        when(userDetailsService.loadUserByUsername(username)).thenReturn(userDetails);
         when(jwtService.isTokenValid(eq(token), any(UserDetails.class))).thenReturn(false);
 
         filter.doFilterInternal(request, response, chain);
