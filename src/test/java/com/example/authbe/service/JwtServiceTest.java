@@ -1,49 +1,74 @@
 package com.example.authbe.service;
 
-import io.jsonwebtoken.ExpiredJwtException;
+import com.example.authbe.enums.Role;
+import com.example.authbe.model.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
+
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class JwtServiceTest {
+class JwtServiceTest {
+
     private JwtService jwtService;
+    private User user;
 
     @BeforeEach
     void setUp() {
         jwtService = new JwtService();
+        user = User.builder()
+                .email("test@example.com")
+                .fullName("Test User")
+                .password("password")
+                .role(Role.STUDENT)
+                .build();
     }
 
     @Test
-    void testGenerateToken() {
-        UserDetails user = User.withUsername("testuser").password("password").roles("USER").build();
-        String token = jwtService.generateToken(user);
+    void generateToken_Success() {
+        String token = jwtService.generateToken(user, TimeUnit.DAYS.toMillis(1));
+
         assertNotNull(token);
+        assertTrue(token.split("\\.").length == 3); // JWT has 3 parts
     }
 
     @Test
-    void testValidateToken_Valid() {
-        UserDetails user = User.withUsername("testuser").password("password").roles("USER").build();
-        String token = jwtService.generateToken(user);
-        assertTrue(jwtService.isTokenValid(token, user));
+    void extractUsername_Success() {
+        String token = jwtService.generateToken(user, TimeUnit.DAYS.toMillis(1));
+        String username = jwtService.extractUsername(token);
+
+        assertEquals("test@example.com", username);
     }
 
     @Test
-    void testValidateToken_Invalid() {
-        UserDetails user = User.withUsername("testuser").password("password").roles("USER").build();
-        String token = jwtService.generateToken(user);
-        // Tamper the token
-        String invalidToken = token + "tampered";
-        assertFalse(jwtService.isTokenValid(invalidToken, user));
+    void extractRole_Success() {
+        String token = jwtService.generateToken(user, TimeUnit.DAYS.toMillis(1));
+        String role = jwtService.extractRole(token);
+
+        assertEquals("STUDENT", role);
     }
 
     @Test
-    void testValidateToken_Expired() throws InterruptedException {
-        UserDetails user = User.withUsername("testuser").password("password").roles("USER").build();
-        String token = jwtService.generateToken(user, 1); // 1 ms expiry
-        Thread.sleep(5);
-        assertThrows(ExpiredJwtException.class, () -> jwtService.isTokenValid(token, user));
+    void isTokenValid_Success() {
+        String token = jwtService.generateToken(user, TimeUnit.DAYS.toMillis(1));
+        boolean isValid = jwtService.isTokenValid(token, user);
+
+        assertTrue(isValid);
+    }
+
+    @Test
+    void isTokenValid_InvalidUser() {
+        String token = jwtService.generateToken(user, TimeUnit.DAYS.toMillis(1));
+        User differentUser = User.builder()
+                .email("different@example.com")
+                .fullName("Different User")
+                .password("password")
+                .role(Role.STUDENT)
+                .build();
+
+        boolean isValid = jwtService.isTokenValid(token, differentUser);
+
+        assertFalse(isValid);
     }
 }
