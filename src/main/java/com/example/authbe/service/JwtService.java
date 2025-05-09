@@ -1,29 +1,31 @@
 package com.example.authbe.service;
 
-import com.example.authbe.model.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Service;
 
 import java.security.Key;
 import java.util.Date;
+
+@Service
 public class JwtService {
     private final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
     private final long defaultExpirationMs = 1000 * 60 * 60; // 1 hour
 
     public String generateToken(UserDetails userDetails) {
-        String role = "USER";
-        if (userDetails instanceof User) {
-            role = ((User) userDetails).getRole().name();
-        }
+        String role = userDetails.getAuthorities().stream()
+                .findFirst()
+                .map(authority -> authority.getAuthority().replace("ROLE_", ""))
+                .orElse("USER");
         return generateToken(userDetails, defaultExpirationMs, role);
     }
 
     public String generateToken(UserDetails userDetails, long expiryMillis) {
-        String role = "USER";
-        if (userDetails instanceof User) {
-            role = ((User) userDetails).getRole().name();
-        }
+        String role = userDetails.getAuthorities().stream()
+                .findFirst()
+                .map(authority -> authority.getAuthority().replace("ROLE_", ""))
+                .orElse("USER");
         return generateToken(userDetails, expiryMillis, role);
     }
 
