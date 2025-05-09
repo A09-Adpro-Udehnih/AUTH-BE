@@ -1,5 +1,6 @@
 package com.example.authbe.service;
 
+import com.example.authbe.model.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -7,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.security.Key;
 import java.util.Date;
+import java.util.UUID;
 
 @Service
 public class JwtService {
@@ -14,25 +16,38 @@ public class JwtService {
     private final long defaultExpirationMs = 1000 * 60 * 60; // 1 hour
 
     public String generateToken(UserDetails userDetails) {
-        String role = userDetails.getAuthorities().stream()
-                .findFirst()
-                .map(authority -> authority.getAuthority().replace("ROLE_", ""))
-                .orElse("USER");
-        return generateToken(userDetails, defaultExpirationMs, role);
+        if (userDetails instanceof User) {
+            User user = (User) userDetails;
+            String role = userDetails.getAuthorities().stream()
+                    .findFirst()
+                    .map(authority -> authority.getAuthority().replace("ROLE_", ""))
+                    .orElse("USER");
+            return generateToken(user, defaultExpirationMs, role);
+        }
+        throw new IllegalArgumentException("UserDetails must be an instance of User");
     }
 
     public String generateToken(UserDetails userDetails, long expiryMillis) {
-        String role = userDetails.getAuthorities().stream()
-                .findFirst()
-                .map(authority -> authority.getAuthority().replace("ROLE_", ""))
-                .orElse("USER");
-        return generateToken(userDetails, expiryMillis, role);
+        if (userDetails instanceof User) {
+            User user = (User) userDetails;
+            String role = userDetails.getAuthorities().stream()
+                    .findFirst()
+                    .map(authority -> authority.getAuthority().replace("ROLE_", ""))
+                    .orElse("USER");
+            return generateToken(user, expiryMillis, role);
+        }
+        throw new IllegalArgumentException("UserDetails must be an instance of User");
     }
 
-    public String generateToken(UserDetails userDetails, long expiryMillis, String role) {
+    public String generateToken(User user, long expiryMillis, String role) {
         return Jwts.builder()
-                .setSubject(userDetails.getUsername())
+                .setSubject(user.getEmail())
+                .claim("userId", user.getId().toString())
+                .claim("email", user.getEmail())
+                .claim("fullName", user.getFullName())
                 .claim("role", role)
+                .claim("createdAt", user.getCreatedAt().toString())
+                .claim("updatedAt", user.getUpdatedAt().toString())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expiryMillis))
                 .signWith(key)
@@ -66,6 +81,25 @@ public class JwtService {
                 .parseClaimsJws(token)
                 .getBody()
                 .get("role", String.class);
+    }
+
+    public UUID extractUserId(String token) {
+        String userIdStr = Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .get("userId", String.class);
+        return UUID.fromString(userIdStr);
+    }
+
+    public String extractFullName(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .get("fullName", String.class);
     }
 
     private boolean isTokenExpired(String token) {
