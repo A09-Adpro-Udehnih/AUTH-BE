@@ -34,6 +34,7 @@ jobs:
             docker rmi $(docker images -a -q)
             docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} -p ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
             docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/${{ secrets.DOCKER_HUB_REPO_NAME }}:latest
+            docker rm -f web_server || true
             docker run -d \
               --name=web_server \
               -p 8080:8080 \
