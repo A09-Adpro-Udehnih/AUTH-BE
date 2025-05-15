@@ -23,7 +23,7 @@ public class UserRepositoryTest {
     private UserRepository userRepository;
 
     private User testUser;
-    private final String TEST_EMAIL = "test@example.com";
+    private final static String TEST_EMAIL = "test@example.com";
 
     @BeforeEach
     void setUp() {
