@@ -28,8 +28,8 @@ public class JwtService {
     }
 
     public String generateToken(UserDetails userDetails, long expiryMillis) {
-        if (userDetails instanceof User) {
-            User user = (User) userDetails;
+        if (userDetails instanceof User user) {
+            user = (User) userDetails;
             String role = userDetails.getAuthorities().stream()
                     .findFirst()
                     .map(authority -> authority.getAuthority().replace("ROLE_", ""))
