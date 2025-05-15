@@ -4,6 +4,7 @@ import com.example.authbe.dto.auth.AuthResponse;
 import com.example.authbe.dto.auth.LoginRequest;
 import com.example.authbe.dto.auth.RegisterRequest;
 import com.example.authbe.enums.Role;
+import com.example.authbe.exception.EmailAlreadyRegisteredException;
 import com.example.authbe.model.User;
 import com.example.authbe.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +27,7 @@ public class AuthService {
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already registered");
+            throw new EmailAlreadyRegisteredException(request.getEmail());
         }
 
         var user = User.builder()

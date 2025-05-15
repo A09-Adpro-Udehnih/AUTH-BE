@@ -4,6 +4,7 @@ import com.example.authbe.dto.auth.AuthResponse;
 import com.example.authbe.dto.auth.LoginRequest;
 import com.example.authbe.dto.auth.RegisterRequest;
 import com.example.authbe.enums.Role;
+import com.example.authbe.exception.EmailAlreadyRegisteredException;
 import com.example.authbe.model.User;
 import com.example.authbe.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -82,7 +83,7 @@ class AuthServiceTest {
     void register_EmailAlreadyExists() {
         when(userRepository.existsByEmail(anyString())).thenReturn(true);
 
-        assertThrows(RuntimeException.class, () -> authService.register(registerRequest));
+        assertThrows(EmailAlreadyRegisteredException.class, () -> authService.register(registerRequest));
         verify(userRepository, never()).save(any(User.class));
     }
 
