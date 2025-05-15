@@ -13,7 +13,7 @@ import java.util.UUID;
 @Service
 public class JwtService {
     private final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
-    private final long defaultExpirationMs = 1000 * 60 * 60; // 1 hour
+    private final static long defaultExpirationMs = 1000L * 60 * 60; // 1 hour
 
     public String generateToken(UserDetails userDetails) {
         if (userDetails instanceof User) {
