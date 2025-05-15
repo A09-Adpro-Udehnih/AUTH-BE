@@ -18,16 +18,17 @@ import java.util.UUID;
 public class UserService implements UserDetailsService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final static String USER_NOT_FOUND_MESSAGE = "User not found";
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+                .orElseThrow(() -> new UsernameNotFoundException(USER_NOT_FOUND_MESSAGE));
     }
 
     public AuthResponse getProfile(UUID userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException(USER_NOT_FOUND_MESSAGE));
 
         return AuthResponse.builder()
                 .email(user.getEmail())
@@ -39,7 +40,7 @@ public class UserService implements UserDetailsService {
     @Transactional
     public AuthResponse updateProfile(UUID userId, String fullName, String currentPassword, String newPassword) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException(USER_NOT_FOUND_MESSAGE));
 
         if (fullName != null && !fullName.isBlank()) {
             user.setFullName(fullName);
