@@ -16,8 +16,8 @@ public class JwtService {
     private final static long defaultExpirationMs = 1000L * 60 * 60; // 1 hour
 
     public String generateToken(UserDetails userDetails) {
-        if (userDetails instanceof User) {
-            User user = (User) userDetails;
+        if (userDetails instanceof User user) {
+            user = (User) userDetails;
             String role = userDetails.getAuthorities().stream()
                     .findFirst()
                     .map(authority -> authority.getAuthority().replace("ROLE_", ""))
