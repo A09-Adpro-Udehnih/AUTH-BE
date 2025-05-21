@@ -11,38 +11,58 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.example.authbe.dto.GlobalResponse;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
+    public ResponseEntity<GlobalResponse<Map<String, String>>> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach((error) -> {
             String fieldName = ((FieldError) error).getField();
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
         });
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
+        GlobalResponse<Map<String, String>> response = GlobalResponse.<Map<String, String>>builder()
+                .code(HttpStatus.BAD_REQUEST)
+                .success(false)
+                .message("Validation failed")
+                .data(errors)
+                .build();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<Map<String, String>> handleBadCredentialsException(BadCredentialsException ex) {
-        Map<String, String> error = new HashMap<>();
-        error.put("error", "Invalid email or password");
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+    public ResponseEntity<GlobalResponse<Void>> handleBadCredentialsException(BadCredentialsException ex) {
+        GlobalResponse<Void> response = GlobalResponse.<Void>builder()
+                .code(HttpStatus.UNAUTHORIZED)
+                .success(false)
+                .message("Invalid email or password")
+                .data(null)
+                .build();
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
     }
 
     @ExceptionHandler(EmailAlreadyRegisteredException.class)
-    public ResponseEntity<Map<String, String>> handleEmailAlreadyRegisteredException(EmailAlreadyRegisteredException ex) {
-        Map<String, String> error = new HashMap<>();
-        error.put("error", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    public ResponseEntity<GlobalResponse<Void>> handleEmailAlreadyRegisteredException(EmailAlreadyRegisteredException ex) {
+        GlobalResponse<Void> response = GlobalResponse.<Void>builder()
+                .code(HttpStatus.BAD_REQUEST)
+                .success(false)
+                .message(ex.getMessage())
+                .data(null)
+                .build();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<Map<String, String>> handleRuntimeException(RuntimeException ex) {
-        Map<String, String> error = new HashMap<>();
-        error.put("error", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    public ResponseEntity<GlobalResponse<Void>> handleRuntimeException(RuntimeException ex) {
+        GlobalResponse<Void> response = GlobalResponse.<Void>builder()
+                .code(HttpStatus.BAD_REQUEST)
+                .success(false)
+                .message(ex.getMessage())
+                .data(null)
+                .build();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 } 

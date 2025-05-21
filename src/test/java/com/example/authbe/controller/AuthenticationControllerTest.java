@@ -3,6 +3,7 @@ package com.example.authbe.controller;
 import com.example.authbe.dto.auth.AuthResponse;
 import com.example.authbe.dto.auth.LoginRequest;
 import com.example.authbe.dto.auth.RegisterRequest;
+import com.example.authbe.dto.GlobalResponse;
 import com.example.authbe.service.AuthService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,6 +12,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -53,11 +55,16 @@ class AuthenticationControllerTest {
     void register_Success() {
         when(authService.register(any(RegisterRequest.class))).thenReturn(authResponse);
 
-        ResponseEntity<AuthResponse> response = authenticationController.register(registerRequest);
+        ResponseEntity<GlobalResponse<AuthResponse>> response = authenticationController.register(registerRequest);
 
         assertNotNull(response);
         assertEquals(200, response.getStatusCode().value());
-        assertEquals(authResponse, response.getBody());
+        GlobalResponse<AuthResponse> body = response.getBody();
+        assertNotNull(body);
+        assertEquals(HttpStatus.OK, body.getCode());
+        assertTrue(body.isSuccess());
+        assertEquals("Registration successful", body.getMessage());
+        assertEquals(authResponse, body.getData());
         verify(authService).register(registerRequest);
     }
 
@@ -65,11 +72,16 @@ class AuthenticationControllerTest {
     void login_Success() {
         when(authService.login(any(LoginRequest.class))).thenReturn(authResponse);
 
-        ResponseEntity<AuthResponse> response = authenticationController.login(loginRequest);
+        ResponseEntity<GlobalResponse<AuthResponse>> response = authenticationController.login(loginRequest);
 
         assertNotNull(response);
         assertEquals(200, response.getStatusCode().value());
-        assertEquals(authResponse, response.getBody());
+        GlobalResponse<AuthResponse> body = response.getBody();
+        assertNotNull(body);
+        assertEquals(HttpStatus.OK, body.getCode());
+        assertTrue(body.isSuccess());
+        assertEquals("Login successful", body.getMessage());
+        assertEquals(authResponse, body.getData());
         verify(authService).login(loginRequest);
     }
 } 
