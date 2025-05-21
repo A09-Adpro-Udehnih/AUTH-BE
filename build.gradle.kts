@@ -67,3 +67,19 @@ tasks.test {
 tasks.jacocoTestReport {
 	dependsOn(tasks.test)
 }
+
+tasks.register("migrate") {
+	group = "database"
+	description = "Run database migrations"
+	
+	dependsOn("compileJava")
+	
+	doLast {
+		project.javaexec {
+			mainClass.set("com.example.authbe.MigrationManager")
+			classpath = sourceSets["main"].runtimeClasspath
+		
+			environment.putAll(System.getenv())
+		}
+	}
+}
