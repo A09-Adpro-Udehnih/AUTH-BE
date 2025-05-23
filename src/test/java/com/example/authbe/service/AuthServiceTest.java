@@ -18,6 +18,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -41,6 +43,7 @@ class AuthServiceTest {
     private RegisterRequest registerRequest;
     private LoginRequest loginRequest;
     private User user;
+    private String mockToken;
 
     @BeforeEach
     void setUp() {
@@ -60,55 +63,81 @@ class AuthServiceTest {
                 .password("encodedPassword")
                 .role(Role.STUDENT)
                 .build();
+
+        mockToken = "mock.jwt.token";
     }
 
     @Test
-    void register_Success() {
+    void registerAsync_Success() throws ExecutionException, InterruptedException {
+        // Arrange
         when(userRepository.existsByEmail(anyString())).thenReturn(false);
         when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
         when(userRepository.save(any(User.class))).thenReturn(user);
-        when(jwtService.generateToken(any(User.class), anyLong())).thenReturn("jwtToken");
+        when(jwtService.generateToken(any(User.class), anyLong())).thenReturn(mockToken);
 
-        AuthResponse response = authService.register(registerRequest);
+        // Act
+        CompletableFuture<AuthResponse> future = authService.registerAsync(registerRequest);
+        AuthResponse response = future.get();
 
+        // Assert
         assertNotNull(response);
         assertEquals("test@example.com", response.getEmail());
         assertEquals("Test User", response.getFullName());
         assertEquals("STUDENT", response.getRole());
-        assertEquals("jwtToken", response.getToken());
+        assertEquals(mockToken, response.getToken());
+        verify(userRepository).existsByEmail(registerRequest.getEmail());
         verify(userRepository).save(any(User.class));
+        verify(jwtService).generateToken(any(User.class), anyLong());
     }
 
     @Test
-    void register_EmailAlreadyExists() {
+    void registerAsync_EmailAlreadyExists() {
+        // Arrange
         when(userRepository.existsByEmail(anyString())).thenReturn(true);
 
-        assertThrows(EmailAlreadyRegisteredException.class, () -> authService.register(registerRequest));
+        // Act & Assert
+        CompletableFuture<AuthResponse> future = authService.registerAsync(registerRequest);
+        ExecutionException thrown = assertThrows(ExecutionException.class, () -> {
+            future.get();
+        });
+        assertTrue(thrown.getCause() instanceof EmailAlreadyRegisteredException);
         verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
-    void login_Success() {
+    void loginAsync_Success() throws ExecutionException, InterruptedException {
+        // Arrange
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(new UsernamePasswordAuthenticationToken(user, null));
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
-        when(jwtService.generateToken(any(User.class), anyLong())).thenReturn("jwtToken");
+        when(jwtService.generateToken(any(User.class), anyLong())).thenReturn(mockToken);
 
-        AuthResponse response = authService.login(loginRequest);
+        // Act
+        CompletableFuture<AuthResponse> future = authService.loginAsync(loginRequest);
+        AuthResponse response = future.get();
 
+        // Assert
         assertNotNull(response);
         assertEquals("test@example.com", response.getEmail());
         assertEquals("Test User", response.getFullName());
         assertEquals("STUDENT", response.getRole());
-        assertEquals("jwtToken", response.getToken());
+        assertEquals(mockToken, response.getToken());
+        verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
+        verify(userRepository).findByEmail(loginRequest.getEmail());
+        verify(jwtService).generateToken(any(User.class), anyLong());
     }
 
     @Test
-    void login_UserNotFound() {
+    void loginAsync_UserNotFound() {
+        // Arrange
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(new UsernamePasswordAuthenticationToken(user, null));
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
 
-        assertThrows(RuntimeException.class, () -> authService.login(loginRequest));
+        // Act & Assert
+        CompletableFuture<AuthResponse> future = authService.loginAsync(loginRequest);
+        assertThrows(ExecutionException.class, () -> {
+            future.get();
+        });
     }
 } 

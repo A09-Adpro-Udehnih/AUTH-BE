@@ -5,10 +5,12 @@ import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Async;
 
 import java.security.Key;
 import java.util.Date;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class JwtService {
@@ -110,5 +112,20 @@ public class JwtService {
                 .getBody()
                 .getExpiration();
         return expiration.before(new Date());
+    }
+
+    @Async("taskExecutor")
+    public CompletableFuture<String> generateTokenAsync(User user, long expiryMillis, String role) {
+        return CompletableFuture.supplyAsync(() -> generateToken(user, expiryMillis, role));
+    }
+
+    @Async("taskExecutor")
+    public CompletableFuture<Boolean> isTokenValidAsync(String token, UserDetails userDetails) {
+        return CompletableFuture.supplyAsync(() -> isTokenValid(token, userDetails));
+    }
+
+    @Async("taskExecutor")
+    public CompletableFuture<String> extractUsernameAsync(String token) {
+        return CompletableFuture.supplyAsync(() -> extractUsername(token));
     }
 }
