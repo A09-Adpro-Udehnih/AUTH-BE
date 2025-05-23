@@ -23,6 +23,8 @@ import java.util.concurrent.ExecutionException;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -73,7 +75,8 @@ class AuthServiceTest {
         when(userRepository.existsByEmail(anyString())).thenReturn(false);
         when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
         when(userRepository.save(any(User.class))).thenReturn(user);
-        when(jwtService.generateToken(any(User.class), anyLong())).thenReturn(mockToken);
+        when(jwtService.generateTokenAsync(any(User.class), anyLong(), anyString()))
+                .thenReturn(CompletableFuture.completedFuture(mockToken));
 
         // Act
         CompletableFuture<AuthResponse> future = authService.registerAsync(registerRequest);
@@ -87,7 +90,7 @@ class AuthServiceTest {
         assertEquals(mockToken, response.getToken());
         verify(userRepository).existsByEmail(registerRequest.getEmail());
         verify(userRepository).save(any(User.class));
-        verify(jwtService).generateToken(any(User.class), anyLong());
+        verify(jwtService).generateTokenAsync(any(User.class), anyLong(), anyString());
     }
 
     @Test
@@ -110,7 +113,8 @@ class AuthServiceTest {
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(new UsernamePasswordAuthenticationToken(user, null));
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
-        when(jwtService.generateToken(any(User.class), anyLong())).thenReturn(mockToken);
+        when(jwtService.generateTokenAsync(any(User.class), anyLong(), anyString()))
+                .thenReturn(CompletableFuture.completedFuture(mockToken));
 
         // Act
         CompletableFuture<AuthResponse> future = authService.loginAsync(loginRequest);
@@ -124,7 +128,7 @@ class AuthServiceTest {
         assertEquals(mockToken, response.getToken());
         verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
         verify(userRepository).findByEmail(loginRequest.getEmail());
-        verify(jwtService).generateToken(any(User.class), anyLong());
+        verify(jwtService).generateTokenAsync(any(User.class), anyLong(), anyString());
     }
 
     @Test
@@ -136,8 +140,10 @@ class AuthServiceTest {
 
         // Act & Assert
         CompletableFuture<AuthResponse> future = authService.loginAsync(loginRequest);
-        assertThrows(ExecutionException.class, () -> {
+        ExecutionException thrown = assertThrows(ExecutionException.class, () -> {
             future.get();
         });
+        assertTrue(thrown.getCause() instanceof RuntimeException);
+        assertTrue(thrown.getCause().getMessage().contains("User not found"));
     }
 } 
