@@ -8,13 +8,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.scheduling.annotation.Async;
 
 import java.security.Key;
+import java.util.Base64;
 import java.util.Date;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 @Service
 public class JwtService {
-    private final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+    private final Key key = Keys.hmacShaKeyFor(
+    Base64.getDecoder().decode(System.getenv("JWT_TOKEN"))
+);
     private final static long defaultExpirationMs = 1000L * 60 * 60; // 1 hour
 
     public String generateToken(UserDetails userDetails) {
@@ -52,7 +55,7 @@ public class JwtService {
                 .claim("updatedAt", user.getUpdatedAt().toString())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expiryMillis))
-                .signWith(key)
+                .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
 
