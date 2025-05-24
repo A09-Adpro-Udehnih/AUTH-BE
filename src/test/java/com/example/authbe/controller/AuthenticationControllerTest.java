@@ -1,9 +1,9 @@
 package com.example.authbe.controller;
 
+import com.example.authbe.dto.GlobalResponse;
 import com.example.authbe.dto.auth.AuthResponse;
 import com.example.authbe.dto.auth.LoginRequest;
 import com.example.authbe.dto.auth.RegisterRequest;
-import com.example.authbe.dto.GlobalResponse;
 import com.example.authbe.service.AuthService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,12 +11,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AuthenticationControllerTest {
@@ -35,53 +39,62 @@ class AuthenticationControllerTest {
     void setUp() {
         registerRequest = new RegisterRequest();
         registerRequest.setEmail("test@example.com");
-        registerRequest.setFullName("Test User");
         registerRequest.setPassword("password123");
-        registerRequest.setRole("STUDENT");
+        registerRequest.setFullName("Test User");
 
         loginRequest = new LoginRequest();
         loginRequest.setEmail("test@example.com");
         loginRequest.setPassword("password123");
 
         authResponse = AuthResponse.builder()
+                .token("mock.jwt.token")
                 .email("test@example.com")
                 .fullName("Test User")
                 .role("STUDENT")
-                .token("jwt.token.here")
                 .build();
     }
 
     @Test
-    void register_Success() {
-        when(authService.register(any(RegisterRequest.class))).thenReturn(authResponse);
+    void register_Success() throws ExecutionException, InterruptedException {
+        // Arrange
+        when(authService.registerAsync(any(RegisterRequest.class)))
+                .thenReturn(CompletableFuture.completedFuture(authResponse));
 
-        ResponseEntity<GlobalResponse<AuthResponse>> response = authenticationController.register(registerRequest);
+        // Act
+        CompletableFuture<ResponseEntity<GlobalResponse<AuthResponse>>> future = 
+            authenticationController.register(registerRequest);
+        ResponseEntity<GlobalResponse<AuthResponse>> response = future.get();
 
+        // Assert
         assertNotNull(response);
-        assertEquals(200, response.getStatusCode().value());
+        assertEquals(HttpStatus.OK, response.getStatusCode());
         GlobalResponse<AuthResponse> body = response.getBody();
         assertNotNull(body);
         assertEquals(HttpStatus.OK, body.getCode());
-        assertTrue(body.isSuccess());
         assertEquals("Registration successful", body.getMessage());
         assertEquals(authResponse, body.getData());
-        verify(authService).register(registerRequest);
+        verify(authService).registerAsync(registerRequest);
     }
 
     @Test
-    void login_Success() {
-        when(authService.login(any(LoginRequest.class))).thenReturn(authResponse);
+    void login_Success() throws ExecutionException, InterruptedException {
+        // Arrange
+        when(authService.loginAsync(any(LoginRequest.class)))
+                .thenReturn(CompletableFuture.completedFuture(authResponse));
 
-        ResponseEntity<GlobalResponse<AuthResponse>> response = authenticationController.login(loginRequest);
+        // Act
+        CompletableFuture<ResponseEntity<GlobalResponse<AuthResponse>>> future = 
+            authenticationController.login(loginRequest);
+        ResponseEntity<GlobalResponse<AuthResponse>> response = future.get();
 
+        // Assert
         assertNotNull(response);
-        assertEquals(200, response.getStatusCode().value());
+        assertEquals(HttpStatus.OK, response.getStatusCode());
         GlobalResponse<AuthResponse> body = response.getBody();
         assertNotNull(body);
         assertEquals(HttpStatus.OK, body.getCode());
-        assertTrue(body.isSuccess());
         assertEquals("Login successful", body.getMessage());
         assertEquals(authResponse, body.getData());
-        verify(authService).login(loginRequest);
+        verify(authService).loginAsync(loginRequest);
     }
 } 

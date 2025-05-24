@@ -13,6 +13,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.scheduling.annotation.Async;
+import java.util.concurrent.CompletableFuture;
 
 import java.util.concurrent.TimeUnit;
 
@@ -25,44 +27,52 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
 
     @Transactional
-    public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new EmailAlreadyRegisteredException(request.getEmail());
-        }
+    @Async("taskExecutor")
+    public CompletableFuture<AuthResponse> registerAsync(RegisterRequest request) {
+        return CompletableFuture.supplyAsync(() -> {
+            if (userRepository.existsByEmail(request.getEmail())) {
+                throw new EmailAlreadyRegisteredException(request.getEmail());
+            }
 
-        var user = User.builder()
-                .email(request.getEmail())
-                .fullName(request.getFullName())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .role(Role.STUDENT)
-                .build();
+            var user = User.builder()
+                    .email(request.getEmail())
+                    .fullName(request.getFullName())
+                    .password(passwordEncoder.encode(request.getPassword()))
+                    .role(Role.STUDENT)
+                    .build();
 
-        userRepository.save(user);
-        String token = jwtService.generateToken(user, TimeUnit.DAYS.toMillis(1));
+            userRepository.save(user);
+            CompletableFuture<String> tokenFuture = jwtService.generateTokenAsync(user, TimeUnit.DAYS.toMillis(1), user.getRole().name());
+            String token = tokenFuture.join();
 
-        return AuthResponse.builder()
-                .token(token)
-                .email(user.getEmail())
-                .fullName(user.getFullName())
-                .role(user.getRole().name())
-                .build();
+            return AuthResponse.builder()
+                    .token(token)
+                    .email(user.getEmail())
+                    .fullName(user.getFullName())
+                    .role(user.getRole().name())
+                    .build();
+        });
     }
 
-    public AuthResponse login(LoginRequest request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-        );
+    @Async("taskExecutor")
+    public CompletableFuture<AuthResponse> loginAsync(LoginRequest request) {
+        return CompletableFuture.supplyAsync(() -> {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+            );
 
-        var user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+            var user = userRepository.findByEmail(request.getEmail())
+                    .orElseThrow(() -> new RuntimeException("User not found"));
 
-        String token = jwtService.generateToken(user, TimeUnit.DAYS.toMillis(1));
+            CompletableFuture<String> tokenFuture = jwtService.generateTokenAsync(user, TimeUnit.DAYS.toMillis(1), user.getRole().name());
+            String token = tokenFuture.join();
 
-        return AuthResponse.builder()
-                .token(token)
-                .email(user.getEmail())
-                .fullName(user.getFullName())
-                .role(user.getRole().name())
-                .build();
+            return AuthResponse.builder()
+                    .token(token)
+                    .email(user.getEmail())
+                    .fullName(user.getFullName())
+                    .role(user.getRole().name())
+                    .build();
+        });
     }
 } 

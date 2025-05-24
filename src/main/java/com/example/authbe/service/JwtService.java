@@ -5,14 +5,19 @@ import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Async;
 
 import java.security.Key;
+import java.util.Base64;
 import java.util.Date;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class JwtService {
-    private final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+    private final Key key = Keys.hmacShaKeyFor(
+    Base64.getDecoder().decode(System.getenv("JWT_TOKEN") != null ? System.getenv("JWT_TOKEN") : "secretsampai256bitsinicumanbuattestingbiardigithubsoalnyagabacaenv")
+);
     private final static long defaultExpirationMs = 1000L * 60 * 60; // 1 hour
 
     public String generateToken(UserDetails userDetails) {
@@ -50,7 +55,7 @@ public class JwtService {
                 .claim("updatedAt", user.getUpdatedAt().toString())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expiryMillis))
-                .signWith(key)
+                .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
 
@@ -110,5 +115,20 @@ public class JwtService {
                 .getBody()
                 .getExpiration();
         return expiration.before(new Date());
+    }
+
+    @Async("taskExecutor")
+    public CompletableFuture<String> generateTokenAsync(User user, long expiryMillis, String role) {
+        return CompletableFuture.supplyAsync(() -> generateToken(user, expiryMillis, role));
+    }
+
+    @Async("taskExecutor")
+    public CompletableFuture<Boolean> isTokenValidAsync(String token, UserDetails userDetails) {
+        return CompletableFuture.supplyAsync(() -> isTokenValid(token, userDetails));
+    }
+
+    @Async("taskExecutor")
+    public CompletableFuture<String> extractUsernameAsync(String token) {
+        return CompletableFuture.supplyAsync(() -> extractUsername(token));
     }
 }
