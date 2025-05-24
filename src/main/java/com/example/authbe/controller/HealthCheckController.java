@@ -9,6 +9,6 @@ public class HealthCheckController {
     
     @GetMapping("/")
     public ResponseEntity<String> healthCheck() {
-        return ResponseEntity.ok("Auth Service is running"); 
+        return ResponseEntity.ok("WANNA BE ROLLBACKED"); 
     }
 }
