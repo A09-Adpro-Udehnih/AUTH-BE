@@ -17,7 +17,7 @@ import java.util.concurrent.CompletableFuture;
 @Service
 public class JwtService {
     private final Key key = Keys.hmacShaKeyFor(
-    Base64.getDecoder().decode(System.getenv("JWT_TOKEN"))
+    Base64.getDecoder().decode(System.getenv("JWT_TOKEN") != null ? System.getenv("JWT_TOKEN") : "secretsampai256bitsinicumanbuattestingbiardigithubsoalnyagabacaenv")
 );
 
     public String generateToken(User user, long expiryMillis) {
