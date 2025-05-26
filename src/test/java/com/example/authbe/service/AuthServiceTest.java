@@ -75,7 +75,7 @@ class AuthServiceTest {
         when(userRepository.existsByEmail(anyString())).thenReturn(false);
         when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
         when(userRepository.save(any(User.class))).thenReturn(user);
-        when(jwtService.generateTokenAsync(any(User.class), anyLong(), anyString()))
+        when(jwtService.generateTokenAsync(any(User.class), anyLong()))
                 .thenReturn(CompletableFuture.completedFuture(mockToken));
 
         // Act
@@ -90,7 +90,7 @@ class AuthServiceTest {
         assertEquals(mockToken, response.getToken());
         verify(userRepository).existsByEmail(registerRequest.getEmail());
         verify(userRepository).save(any(User.class));
-        verify(jwtService).generateTokenAsync(any(User.class), anyLong(), anyString());
+        verify(jwtService).generateTokenAsync(any(User.class), anyLong());
     }
 
     @Test
@@ -113,7 +113,7 @@ class AuthServiceTest {
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(new UsernamePasswordAuthenticationToken(user, null));
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
-        when(jwtService.generateTokenAsync(any(User.class), anyLong(), anyString()))
+        when(jwtService.generateTokenAsync(any(User.class), anyLong()))
                 .thenReturn(CompletableFuture.completedFuture(mockToken));
 
         // Act
@@ -128,7 +128,7 @@ class AuthServiceTest {
         assertEquals(mockToken, response.getToken());
         verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
         verify(userRepository).findByEmail(loginRequest.getEmail());
-        verify(jwtService).generateTokenAsync(any(User.class), anyLong(), anyString());
+        verify(jwtService).generateTokenAsync(any(User.class), anyLong());
     }
 
     @Test

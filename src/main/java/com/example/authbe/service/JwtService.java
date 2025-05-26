@@ -18,39 +18,14 @@ public class JwtService {
     private final Key key = Keys.hmacShaKeyFor(
     Base64.getDecoder().decode(System.getenv("JWT_TOKEN"))
 );
-    private final static long defaultExpirationMs = 1000L * 60 * 60; // 1 hour
 
-    public String generateToken(UserDetails userDetails) {
-        if (userDetails instanceof User user) {
-            user = (User) userDetails;
-            String role = userDetails.getAuthorities().stream()
-                    .findFirst()
-                    .map(authority -> authority.getAuthority().replace("ROLE_", ""))
-                    .orElse("USER");
-            return generateToken(user, defaultExpirationMs, role);
-        }
-        throw new IllegalArgumentException("UserDetails must be an instance of User");
-    }
-
-    public String generateToken(UserDetails userDetails, long expiryMillis) {
-        if (userDetails instanceof User user) {
-            user = (User) userDetails;
-            String role = userDetails.getAuthorities().stream()
-                    .findFirst()
-                    .map(authority -> authority.getAuthority().replace("ROLE_", ""))
-                    .orElse("USER");
-            return generateToken(user, expiryMillis, role);
-        }
-        throw new IllegalArgumentException("UserDetails must be an instance of User");
-    }
-
-    public String generateToken(User user, long expiryMillis, String role) {
+    public String generateToken(User user, long expiryMillis) {
         return Jwts.builder()
                 .setSubject(user.getEmail())
                 .claim("userId", user.getId().toString())
                 .claim("email", user.getEmail())
                 .claim("fullName", user.getFullName())
-                .claim("role", role)
+                .claim("role", user.getRole().name())
                 .claim("createdAt", user.getCreatedAt().toString())
                 .claim("updatedAt", user.getUpdatedAt().toString())
                 .setIssuedAt(new Date())
@@ -118,8 +93,8 @@ public class JwtService {
     }
 
     @Async("taskExecutor")
-    public CompletableFuture<String> generateTokenAsync(User user, long expiryMillis, String role) {
-        return CompletableFuture.supplyAsync(() -> generateToken(user, expiryMillis, role));
+    public CompletableFuture<String> generateTokenAsync(User user, long expiryMillis) {
+        return CompletableFuture.supplyAsync(() -> generateToken(user, expiryMillis));
     }
 
     @Async("taskExecutor")

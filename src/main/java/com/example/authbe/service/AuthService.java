@@ -42,7 +42,7 @@ public class AuthService {
                     .build();
 
             userRepository.save(user);
-            CompletableFuture<String> tokenFuture = jwtService.generateTokenAsync(user, TimeUnit.DAYS.toMillis(1), user.getRole().name());
+            CompletableFuture<String> tokenFuture = jwtService.generateTokenAsync(user, TimeUnit.DAYS.toMillis(1));
             String token = tokenFuture.join();
 
             return AuthResponse.builder()
@@ -64,7 +64,7 @@ public class AuthService {
             var user = userRepository.findByEmail(request.getEmail())
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            CompletableFuture<String> tokenFuture = jwtService.generateTokenAsync(user, TimeUnit.DAYS.toMillis(1), user.getRole().name());
+            CompletableFuture<String> tokenFuture = jwtService.generateTokenAsync(user, TimeUnit.DAYS.toMillis(1));
             String token = tokenFuture.join();
 
             return AuthResponse.builder()

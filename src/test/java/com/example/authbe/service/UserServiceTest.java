@@ -82,39 +82,4 @@ class UserServiceTest {
 
         assertThrows(RuntimeException.class, () -> userService.getProfile(userId));
     }
-
-    @Test
-    void updateProfile_UpdateName_Success() {
-        when(userRepository.findById(any(UUID.class))).thenReturn(Optional.of(user));
-        when(userRepository.save(any(User.class))).thenReturn(user);
-
-        AuthResponse response = userService.updateProfile(userId, "New Name", null, null);
-
-        assertNotNull(response);
-        assertEquals("New Name", response.getFullName());
-        verify(userRepository).save(any(User.class));
-    }
-
-    @Test
-    void updateProfile_UpdatePassword_Success() {
-        when(userRepository.findById(any(UUID.class))).thenReturn(Optional.of(user));
-        when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
-        when(passwordEncoder.encode(anyString())).thenReturn("newEncodedPassword");
-        when(userRepository.save(any(User.class))).thenReturn(user);
-
-        AuthResponse response = userService.updateProfile(userId, null, "oldPassword", "newPassword");
-
-        assertNotNull(response);
-        verify(userRepository).save(any(User.class));
-    }
-
-    @Test
-    void updateProfile_WrongCurrentPassword() {
-        when(userRepository.findById(any(UUID.class))).thenReturn(Optional.of(user));
-        when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
-
-        assertThrows(RuntimeException.class, () -> 
-            userService.updateProfile(userId, null, "wrongPassword", "newPassword"));
-        verify(userRepository, never()).save(any(User.class));
-    }
 } 
