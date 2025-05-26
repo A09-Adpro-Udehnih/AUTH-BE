@@ -98,7 +98,7 @@ jobs:
             docker pull ${{ env.IMAGE_NAME }}:${{ env.TAG }}
 
             echo "Saving current image for rollback..."
-            CURRENT_IMAGE=$(docker inspect --format='{{.Config.Image}}' web_server || echo "none")
+            CURRENT_IMAGE=$(docker compose ps -q web_server | xargs docker inspect --format '{{.Config.Image}}' || echo "none")
             echo "$CURRENT_IMAGE" > ~/rollback_image.txt
 
             echo "Creating environment variables..."
