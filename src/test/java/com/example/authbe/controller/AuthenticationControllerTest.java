@@ -13,6 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -56,45 +57,81 @@ class AuthenticationControllerTest {
 
     @Test
     void register_Success() throws ExecutionException, InterruptedException {
-        // Arrange
         when(authService.registerAsync(any(RegisterRequest.class)))
                 .thenReturn(CompletableFuture.completedFuture(authResponse));
 
-        // Act
         CompletableFuture<ResponseEntity<GlobalResponse<AuthResponse>>> future = 
             authenticationController.register(registerRequest);
         ResponseEntity<GlobalResponse<AuthResponse>> response = future.get();
 
-        // Assert
         assertNotNull(response);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         GlobalResponse<AuthResponse> body = response.getBody();
         assertNotNull(body);
         assertEquals(HttpStatus.OK, body.getCode());
+        assertTrue(body.isSuccess());
         assertEquals("Registration successful", body.getMessage());
         assertEquals(authResponse, body.getData());
         verify(authService).registerAsync(registerRequest);
     }
 
     @Test
+    void register_Error() throws ExecutionException, InterruptedException {
+        when(authService.registerAsync(any(RegisterRequest.class)))
+                .thenReturn(CompletableFuture.failedFuture(new RuntimeException("Registration failed")));
+
+        CompletableFuture<ResponseEntity<GlobalResponse<AuthResponse>>> future = 
+            authenticationController.register(registerRequest);
+        ResponseEntity<GlobalResponse<AuthResponse>> response = future.get();
+
+        assertNotNull(response);
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        GlobalResponse<AuthResponse> body = response.getBody();
+        assertNotNull(body);
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, body.getCode());
+        assertFalse(body.isSuccess());
+        assertEquals("Registration failed: java.lang.RuntimeException: Registration failed", body.getMessage());
+        assertNull(body.getData());
+        verify(authService).registerAsync(registerRequest);
+    }
+
+    @Test
     void login_Success() throws ExecutionException, InterruptedException {
-        // Arrange
         when(authService.loginAsync(any(LoginRequest.class)))
                 .thenReturn(CompletableFuture.completedFuture(authResponse));
 
-        // Act
         CompletableFuture<ResponseEntity<GlobalResponse<AuthResponse>>> future = 
             authenticationController.login(loginRequest);
         ResponseEntity<GlobalResponse<AuthResponse>> response = future.get();
 
-        // Assert
         assertNotNull(response);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         GlobalResponse<AuthResponse> body = response.getBody();
         assertNotNull(body);
         assertEquals(HttpStatus.OK, body.getCode());
+        assertTrue(body.isSuccess());
         assertEquals("Login successful", body.getMessage());
         assertEquals(authResponse, body.getData());
+        verify(authService).loginAsync(loginRequest);
+    }
+
+    @Test
+    void login_Error() throws ExecutionException, InterruptedException {
+        when(authService.loginAsync(any(LoginRequest.class)))
+                .thenReturn(CompletableFuture.failedFuture(new BadCredentialsException("Invalid credentials")));
+
+        CompletableFuture<ResponseEntity<GlobalResponse<AuthResponse>>> future = 
+            authenticationController.login(loginRequest);
+        ResponseEntity<GlobalResponse<AuthResponse>> response = future.get();
+
+        assertNotNull(response);
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        GlobalResponse<AuthResponse> body = response.getBody();
+        assertNotNull(body);
+        assertEquals(HttpStatus.UNAUTHORIZED, body.getCode());
+        assertFalse(body.isSuccess());
+        assertEquals("Login failed: org.springframework.security.authentication.BadCredentialsException: Invalid credentials", body.getMessage());
+        assertNull(body.getData());
         verify(authService).loginAsync(loginRequest);
     }
 } 
