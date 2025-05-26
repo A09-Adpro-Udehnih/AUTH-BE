@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -47,6 +48,15 @@ class JwtServiceTest {
 
         assertNotNull(token);
         assertTrue(token.split("\\.").length == 3);
+    }
+
+    @Test
+    void generateTokenAsync_Success() throws Exception {
+        CompletableFuture<String> tokenFuture = jwtService.generateTokenAsync(user, EXPIRY_TIME);
+        String token = tokenFuture.get();
+
+        assertNotNull(token);
+        assertTrue(token.split("\\.").length == 3); // JWT has 3 parts
     }
 
     @Test
@@ -109,7 +119,52 @@ class JwtServiceTest {
 
     @Test
     void isTokenValid_ExpiredToken() {
-        String token = jwtService.generateToken(user, -1000L); // Expired token
+        String token = jwtService.generateToken(user, -1000L);
         assertThrows(ExpiredJwtException.class, () -> jwtService.isTokenValid(token, user));
+    }
+
+    @Test
+    void isTokenValid_MalformedJwt() {
+        String malformedToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9";
+        boolean isValid = jwtService.isTokenValid(malformedToken, user);
+        assertFalse(isValid);
+    }
+
+    @Test
+    void isTokenValid_UnsupportedJwt() {
+        String unsupportedToken = "eyJhbGciOiJOT1RTUFAiLCJ0eXAiOiJKV1QifQ.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIn0.signature";
+        boolean isValid = jwtService.isTokenValid(unsupportedToken, user);
+        assertFalse(isValid);
+    }
+
+    @Test
+    void isTokenValid_IllegalArgument() {
+        boolean isValid = jwtService.isTokenValid(null, user);
+        assertFalse(isValid);
+    }
+
+    @Test
+    void isTokenValid_SignatureException() {
+        String tokenWithInvalidSignature = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIn0.invalid_signature";
+        boolean isValid = jwtService.isTokenValid(tokenWithInvalidSignature, user);
+        assertFalse(isValid);
+    }
+
+    @Test
+    void isTokenValid_ValidTokenButWrongUsername() {
+        String token = jwtService.generateToken(user, EXPIRY_TIME);
+        
+        User differentUser = User.builder()
+                .id(UUID.randomUUID())
+                .email("wrong@example.com") 
+                .fullName("Wrong User")
+                .password("password")
+                .role(Role.STUDENT)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        boolean isValid = jwtService.isTokenValid(token, differentUser);
+        assertFalse(isValid);
     }
 }
