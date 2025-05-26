@@ -3,6 +3,7 @@ package com.example.authbe.service;
 import com.example.authbe.model.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.scheduling.annotation.Async;
@@ -40,7 +41,7 @@ public class JwtService {
             return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
         } catch (ExpiredJwtException e) {
             throw e;
-        } catch (Exception e) {
+        } catch (MalformedJwtException | UnsupportedJwtException | IllegalArgumentException | SignatureException e) {
             return false;
         }
     }
@@ -95,15 +96,5 @@ public class JwtService {
     @Async("taskExecutor")
     public CompletableFuture<String> generateTokenAsync(User user, long expiryMillis) {
         return CompletableFuture.supplyAsync(() -> generateToken(user, expiryMillis));
-    }
-
-    @Async("taskExecutor")
-    public CompletableFuture<Boolean> isTokenValidAsync(String token, UserDetails userDetails) {
-        return CompletableFuture.supplyAsync(() -> isTokenValid(token, userDetails));
-    }
-
-    @Async("taskExecutor")
-    public CompletableFuture<String> extractUsernameAsync(String token) {
-        return CompletableFuture.supplyAsync(() -> extractUsername(token));
     }
 }
