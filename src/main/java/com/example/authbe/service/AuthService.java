@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.scheduling.annotation.Async;
 import java.util.concurrent.CompletableFuture;
+import org.springframework.security.authentication.BadCredentialsException;
 
 import java.util.concurrent.TimeUnit;
 
@@ -62,7 +63,7 @@ public class AuthService {
             );
 
             var user = userRepository.findByEmail(request.getEmail())
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+                    .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
 
             CompletableFuture<String> tokenFuture = jwtService.generateTokenAsync(user, TimeUnit.DAYS.toMillis(1));
             String token = tokenFuture.join();

@@ -14,6 +14,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -143,7 +144,7 @@ class AuthServiceTest {
         ExecutionException thrown = assertThrows(ExecutionException.class, () -> {
             future.get();
         });
-        assertTrue(thrown.getCause() instanceof RuntimeException);
-        assertTrue(thrown.getCause().getMessage().contains("User not found"));
+        assertTrue(thrown.getCause() instanceof BadCredentialsException);
+        assertTrue(thrown.getCause().getMessage().contains("Invalid email or password"));
     }
 } 

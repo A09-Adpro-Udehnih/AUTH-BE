@@ -209,4 +209,33 @@ class UserModelTest {
         assertEquals(createdAt, user.getCreatedAt());
         assertEquals(updatedAt, user.getUpdatedAt());
     }
+
+    @Test
+    void testGetAuthorities() {
+        User student = User.builder()
+                .role(Role.STUDENT)
+                .build();
+        
+        User tutor = User.builder()
+                .role(Role.TUTOR)
+                .build();
+        
+        User staff = User.builder()
+                .role(Role.STAFF)
+                .build();
+
+        assertEquals("ROLE_STUDENT", student.getAuthorities().iterator().next().getAuthority());
+        assertEquals("ROLE_TUTOR", tutor.getAuthorities().iterator().next().getAuthority());
+        assertEquals("ROLE_STAFF", staff.getAuthorities().iterator().next().getAuthority());
+    }
+
+    @Test
+    void testAccountStatusMethods() {
+        User user = new User();
+        
+        assertTrue(user.isAccountNonExpired());
+        assertTrue(user.isAccountNonLocked());
+        assertTrue(user.isCredentialsNonExpired());
+        assertTrue(user.isEnabled());
+    }
 }
