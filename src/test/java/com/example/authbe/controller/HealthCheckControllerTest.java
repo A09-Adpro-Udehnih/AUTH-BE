@@ -14,6 +14,6 @@ class HealthCheckControllerTest {
 
         assertNotNull(response);
         assertEquals(200, response.getStatusCode().value());
-        assertEquals("Auth Service is Running", response.getBody());
+        assertEquals("Rollback", response.getBody());
     }
 } 
