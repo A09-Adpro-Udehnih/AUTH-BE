@@ -8,8 +8,6 @@ import com.example.authbe.exception.EmailAlreadyRegisteredException;
 import com.example.authbe.model.User;
 import com.example.authbe.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,7 +23,6 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-    private final AuthenticationManager authenticationManager;
 
     @Transactional
     @Async("taskExecutor")
@@ -58,12 +55,12 @@ public class AuthService {
     @Async("taskExecutor")
     public CompletableFuture<AuthResponse> loginAsync(LoginRequest request) {
         return CompletableFuture.supplyAsync(() -> {
-            authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-            );
-
             var user = userRepository.findByEmail(request.getEmail())
                     .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
+
+            if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+                throw new BadCredentialsException("Invalid email or password");
+            }
 
             CompletableFuture<String> tokenFuture = jwtService.generateTokenAsync(user, TimeUnit.DAYS.toMillis(1));
             String token = tokenFuture.join();

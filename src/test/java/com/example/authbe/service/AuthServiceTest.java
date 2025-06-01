@@ -13,9 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
@@ -37,8 +35,6 @@ class AuthServiceTest {
     private PasswordEncoder passwordEncoder;
     @Mock
     private JwtService jwtService;
-    @Mock
-    private AuthenticationManager authenticationManager;
 
     @InjectMocks
     private AuthService authService;
@@ -111,9 +107,8 @@ class AuthServiceTest {
     @Test
     void loginAsync_Success() throws ExecutionException, InterruptedException {
         // Arrange
-        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenReturn(new UsernamePasswordAuthenticationToken(user, null));
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
         when(jwtService.generateTokenAsync(any(User.class), anyLong()))
                 .thenReturn(CompletableFuture.completedFuture(mockToken));
 
@@ -127,17 +122,30 @@ class AuthServiceTest {
         assertEquals("Test User", response.getFullName());
         assertEquals("STUDENT", response.getRole());
         assertEquals(mockToken, response.getToken());
-        verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
         verify(userRepository).findByEmail(loginRequest.getEmail());
+        verify(passwordEncoder).matches(loginRequest.getPassword(), user.getPassword());
         verify(jwtService).generateTokenAsync(any(User.class), anyLong());
     }
 
     @Test
     void loginAsync_UserNotFound() {
         // Arrange
-        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenReturn(new UsernamePasswordAuthenticationToken(user, null));
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
+
+        // Act & Assert
+        CompletableFuture<AuthResponse> future = authService.loginAsync(loginRequest);
+        ExecutionException thrown = assertThrows(ExecutionException.class, () -> {
+            future.get();
+        });
+        assertTrue(thrown.getCause() instanceof BadCredentialsException);
+        assertTrue(thrown.getCause().getMessage().contains("Invalid email or password"));
+    }
+
+    @Test
+    void loginAsync_InvalidPassword() {
+        // Arrange
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
 
         // Act & Assert
         CompletableFuture<AuthResponse> future = authService.loginAsync(loginRequest);
